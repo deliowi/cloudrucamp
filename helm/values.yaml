@@ -1,0 +1,4 @@
+container:
+  image: test/web-app
+replicas: 3
+author: deliowi

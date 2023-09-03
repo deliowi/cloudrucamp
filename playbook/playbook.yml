@@ -1,0 +1,45 @@
+---
+- hosts: all
+  vars: 
+    ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCfrfE0OluoNHb5dOpV4RpWmVXvMBWc17kaM7DDjCm7romNQMDX95i5Fc67Q3c47pvrm/qi/ZqsCeqNdLl5+VV41rVz701Pj/UUr2FZpIm80Ur0iM1DFy81GKo/lS1INopqdd4KvUnM2d8yqfJSm9m5Cq7AM9S0mqObuMayfqNR4YcOlm9fnEMqhrSWbBVvdghPNiBzs7T9RzEq/0w8rs743tCF7MICv72fdgYadrGlxFsFWSujwZXQLI4VUSxKirJBCUgfR0u84gZK/wUzJ4EPqMichniTf24AsvidozUHWMDmQ+pUaBTyxjD5egi8LcV0EHH4feHwzacA2gyGbOtFK3wpa/dgE1yvPTkPKnccIXKnbel0mfxfsBVkclc5/DnczmrdaGrX5DCrQbI+HO4lhr4KzAm/pw6qfLcw8KjCdVKsnCRXykdat8KUwNAeolknRWdKDqdsbyXBj+ePMTlMR8YmoBj9znYWwOnAAyu56utiteL0oq9YPkb7ZGF5ZOE="
+    
+  tasks: 
+    - name: create user cloudru
+      ansible.builtin.user: 
+        name: cloudru
+        password: "{{ 'cloudpass' | password_hash('sha512') }}" 
+      become: yes
+            
+    - name: enable PubkeyAuthentication
+      ansible.builtin.lineinfile: 
+        path: /etc/ssh/sshd_config 
+        regexp: '^PubkeyAuthentication' 
+        line: 'PubkeyAuthentication yes'
+      become: yes
+      notify:
+        - restart sshd
+                
+    - name: disable ssh login for root
+      ansible.builtin.lineinfile: 
+        path: /etc/ssh/sshd_config 
+        regexp: '^PermitRootLogin' 
+        line: 'PermitRootLogin no'
+      become: yes
+      notify:
+        - restart sshd
+                
+            
+    - name: set authorized key for user cloudru
+      ansible.posix.authorized_key:
+        user: cloudru
+        key: "{{ ssh_key }}"
+        state: present
+      become: yes
+        
+  handlers:
+    - name: restart sshd
+      ansible.builtin.service: 
+        name: sshd
+        state: restarted
+      become: yes
+       
